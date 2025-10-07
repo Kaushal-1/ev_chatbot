@@ -6,12 +6,11 @@ A smart terminal-based chatbot for Electric Vehicle data (attached the data fold
 
 ```
 New_EV_Chatbot/
-├── venv/
-│   ├── main.py              # Main chat interface
-│   ├── query_engine.py      # Groq API setup
-│   ├── requirements.txt     # Dependencies
-│   ├── .env                 # Environment variables
-│   └── .env.example         # Environment template
+├── main.py              # Main chat interface
+├── query_engine.py      # Groq API setup
+├── requirements.txt     # Dependencies
+├── .env                 # Environment variables (not in repo)
+├── .env.example         # Environment template
 ├── .gitignore
 └── README.md
 ```
@@ -20,7 +19,7 @@ New_EV_Chatbot/
 
 ### 1. Clone & Navigate
 ```bash
-cd "New_EV_Chatbot/venv"
+cd "New_EV_Chatbot"
 ```
 
 ### 2. Install Dependencies
