@@ -55,11 +55,13 @@ logs/
 *.db
 *.sqlite3
 
-# Large data files (keep structure, exclude content)
+# Large data files (keep structure, exclude large content)
 *.csv
 *.json
-*.pdf
 *.txt
+
+# PDF files (exclude actual PDFs but keep folder structure)
+*.pdf
 
 # ChromaDB data (keep structure, exclude database files)
 data/output/chroma/*.sqlite3
