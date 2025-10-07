@@ -1,6 +1,6 @@
 # EV_CHATBOT 🚗⚡
 
-A smart terminal-based chatbot for Electric Vehicle data (attached the data folder)! Built with Python and powered by Groq's lightning-fast LLM API.
+A smart terminal-based chatbot for Electric Vehicle industry analysis! Built with Python, powered by Groq's lightning-fast LLM API, and enhanced with RAG (Retrieval-Augmented Generation) using real company data from TVS, Bajaj Electric, and Hero MotoCorp.
 
 ## Project Structure 📁
 
@@ -8,9 +8,19 @@ A smart terminal-based chatbot for Electric Vehicle data (attached the data fold
 New_EV_Chatbot/
 ├── main.py              # Main chat interface
 ├── query_engine.py      # Groq API setup
+├── app.py               # Streamlit web interface (optional)
 ├── requirements.txt     # Dependencies
 ├── .env                 # Environment variables (not in repo)
 ├── .env.example         # Environment template
+├── rag/                 # RAG pipeline components
+│   ├── pdf_loader.py    # Document processing
+│   ├── vectorstore.py   # ChromaDB integration
+│   └── test_*.py        # Testing utilities
+├── db/                  # Database utilities
+│   └── db_utils.py      # Supabase connection
+├── data/                # Processed data storage
+│   └── output/
+│       └── chroma/      # Vector database files
 ├── .gitignore
 └── README.md
 ```
@@ -52,18 +62,35 @@ Just type your questions and hit Enter. The AI will respond in real-time with st
 
 To exit, type `exit` or `quit`.
 
+## Data Sources 📊
+
+The chatbot is powered by comprehensive EV industry data:
+
+### Company Annual Reports (2021-2023)
+- **TVS Motor Company**: Annual reports and financial statements
+- **Bajaj Auto (Electric Division)**: EV segment performance and strategy
+- **Hero MotoCorp**: Electric vehicle initiatives and market analysis
+
+### Industry Reports
+- EV market trends and forecasts
+- Government policy documents
+- Industry research and analysis reports
+- Technical specifications and standards
+
 ## Features ✨
 
+- **RAG-Powered Responses**: Answers based on real company data and industry reports
 - **Real-time Streaming**: Responses appear as they're generated
+- **Document-Grounded**: All responses backed by actual company filings
 - **Natural Conversations**: Ask follow-up questions naturally
-- **No Rate Limits**: Powered by Groq's fast API
+- **Multi-Source Integration**: Combines data from multiple companies and sources
 - **Clean Terminal UI**: Simple and distraction-free
 - **Easy Exit**: Type 'exit' or 'quit' to leave
 
 ## Technical Details 🔧
 
 ### Architecture Overview
-The EV Chatbot follows a modular architecture with clear separation of concerns:
+The EV Chatbot follows a RAG-enhanced architecture with document processing and vector search:
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
@@ -73,9 +100,30 @@ The EV Chatbot follows a modular architecture with clear separation of concerns:
                                 │
                                 ▼
                        ┌─────────────────┐
-                       │ Supabase DB     │
-                       │ (Data Source)   │
+                       │ Vector Search   │
+                       │ (ChromaDB)      │
                        └─────────────────┘
+                                │
+                                ▼
+                       ┌─────────────────┐
+                       │ Document Store  │
+                       │ (Company Data)  │
+                       └─────────────────┘
+```
+
+### RAG Pipeline Process
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│ PDF Documents   │───▶│ Text Chunking    │───▶│ HuggingFace     │
+│ (Annual Reports)│    │ (rag/pdf_loader) │    │ Embeddings      │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                                         │
+                                                         ▼
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│ User Query      │◄───│ Similarity Search│◄───│ ChromaDB        │
+│ + Context       │    │ (Top-K Retrieval)│    │ Vector Store    │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
 ```
 
 ### Core Components
@@ -96,19 +144,37 @@ The EV Chatbot follows a modular architecture with clear separation of concerns:
   - Environment variable management
   - Error handling for missing dependencies
 
-#### 3. **Environment Configuration**
+#### 3. **rag/** - Document Processing Pipeline
+- **Purpose**: Handles document ingestion and vector storage
+- **Key Components**:
+  - `pdf_loader.py`: Extracts and chunks text from company PDFs
+  - `vectorstore.py`: Creates and manages ChromaDB vector embeddings
+  - Uses HuggingFace sentence-transformers for text embeddings
+  - Implements semantic search for relevant document retrieval
+
+#### 4. **Environment Configuration**
 - **`.env`**: Stores sensitive credentials (API keys, DB credentials)
 - **`.env.example`**: Template for users to set up their own environment
 - **`python-dotenv`**: Loads environment variables securely
 
 ### Data Flow Process
 
-1. **User Input**: User types question in terminal
-2. **Database Query**: System fetches relevant EV data from Supabase
-3. **Context Enhancement**: User query + database context combined
-4. **LLM Processing**: Enhanced query sent to Groq's Llama 3.3 70B model
-5. **Streaming Response**: Real-time response generation and display
-6. **Loop Continuation**: Process repeats until user exits
+1. **Document Ingestion** (One-time setup):
+   - Annual reports from TVS, Bajaj Electric, Hero MotoCorp (2021-2023)
+   - Industry reports and policy documents
+   - Text extraction and chunking via `pdf_loader.py`
+   - Embedding generation using HuggingFace sentence-transformers
+   - Vector storage in ChromaDB via `vectorstore.py`
+
+2. **Query Processing** (Runtime):
+   - **User Input**: User types question in terminal
+   - **Vector Search**: Query embedded and matched against document chunks
+   - **Context Retrieval**: Most relevant company data retrieved from ChromaDB
+   - **Database Query**: Additional context from Supabase (if available)
+   - **Context Enhancement**: User query + retrieved documents + database context
+   - **LLM Processing**: Enhanced query sent to Groq's Llama 3.3 70B model
+   - **Streaming Response**: Real-time response generation with source grounding
+   - **Loop Continuation**: Process repeats until user exits
 
 ### LLM Configuration
 - **Model**: Llama 3.3 70B Versatile (via Groq API)
@@ -117,8 +183,15 @@ The EV Chatbot follows a modular architecture with clear separation of concerns:
 - **Streaming**: Real-time token generation
 - **Top-p**: 1.0 (full vocabulary consideration)
 
-### Database Integration
-- **Database**: PostgreSQL (Supabase)
+### Vector Database Integration
+- **Primary Storage**: ChromaDB for document vectors
+- **Embeddings**: HuggingFace sentence-transformers/all-MiniLM-L6-v2
+- **Chunking Strategy**: Semantic text segmentation for optimal retrieval
+- **Search Method**: Cosine similarity for document matching
+- **Persistence**: Local ChromaDB storage in `data/output/chroma/`
+
+### Relational Database Integration
+- **Secondary Storage**: PostgreSQL (Supabase)
 - **Connection**: psycopg2-binary driver
 - **Authentication**: Environment-based credentials
 - **Query Strategy**: Dynamic table discovery and context retrieval
@@ -132,9 +205,19 @@ The EV Chatbot follows a modular architecture with clear separation of concerns:
 
 ### Performance Optimizations
 - **Streaming Responses**: Immediate user feedback
+- **Vector Caching**: Pre-computed embeddings for fast retrieval
+- **Efficient Chunking**: Optimized text segmentation for better context
 - **Connection Pooling**: Efficient database connections
 - **Minimal Dependencies**: Fast startup and low resource usage
 - **Warning Suppression**: Clean terminal output
+
+### Document Processing Details
+- **Supported Formats**: PDF (annual reports, industry documents)
+- **Text Extraction**: PyMuPDF for reliable PDF processing
+- **Chunking Strategy**: Semantic segmentation preserving context
+- **Embedding Model**: sentence-transformers/all-MiniLM-L6-v2 (384 dimensions)
+- **Vector Storage**: ChromaDB with persistence
+- **Retrieval**: Top-K similarity search (configurable K value)
 
 ## Configuration ⚙️
 
@@ -159,13 +242,35 @@ Check that your Groq API key is valid and has credits.
 ### "Connection Error"
 Make sure you have internet connection for API calls.
 
+## Example Queries 💡
+
+Try asking questions about the companies and industry:
+
+- "What is TVS's electric vehicle strategy for 2023?"
+- "Compare Bajaj and Hero's EV market performance"
+- "What are the key challenges in EV adoption according to industry reports?"
+- "Show me TVS's financial performance in the EV segment"
+- "What government policies are mentioned in the company reports?"
+
 ## What's Next? 🚀
 
-- [ ] Add RAG integration for custom EV documents
+- [x] RAG integration with company annual reports
+- [x] ChromaDB vector storage
+- [x] HuggingFace embeddings
 - [ ] Web interface with Streamlit
 - [ ] Voice input/output
 - [ ] Save conversation history
 - [ ] Multi-language support
+- [ ] Real-time data updates
+
+## Data Sources Attribution 📚
+
+- **TVS Motor Company**: Annual reports and investor presentations
+- **Bajaj Auto**: Electric vehicle segment reports and financial data
+- **Hero MotoCorp**: EV strategy documents and market analysis
+- **Industry Reports**: Various EV market research and policy documents
+
+*All data used is from publicly available sources and company filings.*
 
 ## Contributing 🤝
 
