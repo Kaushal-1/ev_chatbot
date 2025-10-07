@@ -55,22 +55,16 @@ logs/
 *.db
 *.sqlite3
 
-# Data files
-data/
+# Large data files (keep structure, exclude content)
 *.csv
 *.json
 *.pdf
 *.txt
 
-# ChromaDB
-chroma/
+# ChromaDB data (keep structure, exclude database files)
+data/output/chroma/*.sqlite3
+data/output/chroma/*/*.bin
 *.chroma
-
-# Unused project folders
-rag/
-db/
-app-script/
-app.py
 
 # Node modules (if any)
 node_modules/
